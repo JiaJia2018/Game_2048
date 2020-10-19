@@ -1,19 +1,22 @@
 $(function () {
-    //是否产生新数字
+    //是否产生新元素
     var isNewRndItem = false;
     var gameScore = 0;
+    //最高分
+    var maxScore = 0;
+
 
     //游戏初始化
     gameInit();
 
     function refreshGame() {
-        var items = $('.gameBody .row .item');  //获取N*N的所有方格（这里N为4）
+        var items = $('.gameBody .row .item');
         for (var i = 0; i < items.length; i++) {
             items.eq(i).html('').removeClass('nonEmptyItem').addClass('emptyItem');
         }
+         //分数清零
         gameScore = 0;
-        //分数清零
-        $('#gameScore').html(gameScore);
+        // $('#gameScore').html(gameScore);
         //随机生成两个新元素
         newRndItem();
         newRndItem();
@@ -54,7 +57,6 @@ $(function () {
 
 
     function itemMove(currentItem, direction) {
-
         var sideItem = getSideItem(currentItem, direction);
 
         if (sideItem.length == 0) {//当前元素在最边上
@@ -73,12 +75,8 @@ $(function () {
             //向右合并
             sideItem.html((sideItem.html() - 0) * 2);
             currentItem.html('').removeClass('nonEmptyItem').addClass('emptyItem');
-            gameScore += (sideItem.text() - 0) * 10;
-            $('#gameScore').html(gameScore);
+           
             // itemMove(sideItem, direction);
-            maxScore = maxScore < gameScore ? gameScore : maxScore;
-            $('#maxScore').html(maxScore);
-            localStorage.maxScore = maxScore;
             isNewRndItem = true;
             return;
         }
@@ -91,13 +89,14 @@ $(function () {
         //如果按下的方向是左或上，则正向遍历非空元素
         if (direction == 'left' || direction == 'up') {
             for (var i = 0; i < nonEmptyItems.length; i++) {
-                var currentItem = nonEmptyItems.eq(i);// 选择器第i个元素
+                var currentItem = nonEmptyItems.eq(i);
                 itemMove(currentItem, direction);
             }
         } else if (direction == 'right' || direction == 'down') {//如果按下的方向是右或下，则反向遍历非空元素
             for (var i = nonEmptyItems.length - 1; i >= 0; i--) {
                 var currentItem = nonEmptyItems.eq(i);
                 itemMove(currentItem, direction);
+        $('#gameScore').html(gameScore);
             }
         }
 
@@ -150,7 +149,7 @@ $(function () {
         refreshColor();
     }
 
-    //随机生成新数字
+    //随机生成新元素
     function newRndItem() {
         //随机生成新数字
         var newRndArr = [2, 2, 4];
@@ -209,9 +208,6 @@ $(function () {
                 case '2048':
                     items.eq(i).css('background', 'rgb(221, 160, 221)');
                     break;
-                case '4096':
-                    items.eq(i).css('background', 'rgb(250, 139, 176)');
-                    break;
             }
         }
     }
@@ -249,4 +245,98 @@ $(function () {
                 break;
         }
     });
+
+    // 手机屏幕划动触发
+    (function () {
+        mobilwmtouch(document.getElementById("gameBody"))
+        document.getElementById("gameBody").addEventListener('touright', function (e) {
+            e.preventDefault();
+            // alert("方向向右");
+            console.log('right');
+            isNewRndItem = false;
+            move('right');
+            isGameOver();
+        });
+        document.getElementById("gameBody").addEventListener('touleft', function (e) {
+            // alert("方向向左");
+            console.log('left');
+            isNewRndItem = false;
+            move('left');
+            isGameOver();
+        });
+        document.getElementById("gameBody").addEventListener('toudown', function (e) {
+            // alert("方向向下");
+            console.log('down');
+            isNewRndItem = false;
+            move('down');
+            isGameOver();
+        });
+        document.getElementById("gameBody").addEventListener('touup', function (e) {
+            // alert("方向向上");
+            console.log('up');
+            isNewRndItem = false;
+            move('up');
+            isGameOver();
+        });
+
+        function mobilwmtouch(obj) {
+            var stoux, stouy;
+            var etoux, etouy;
+            var xdire, ydire;
+            obj.addEventListener("touchstart", function (e) {
+                stoux = e.targetTouches[0].clientX;
+                stouy = e.targetTouches[0].clientY;
+                //console.log(stoux);
+            }, false);
+            obj.addEventListener("touchend", function (e) {
+                etoux = e.changedTouches[0].clientX;
+                etouy = e.changedTouches[0].clientY;
+                xdire = etoux - stoux;
+                ydire = etouy - stouy;
+                chazhi = Math.abs(xdire) - Math.abs(ydire);
+                //console.log(ydire);
+                if (xdire > 0 && chazhi > 0) {
+                    console.log("right");
+                    //alert(evenzc('touright',alerts));
+                    obj.dispatchEvent(evenzc('touright'));
+
+                } else if (ydire > 0 && chazhi < 0) {
+                    console.log("down");
+                    obj.dispatchEvent(evenzc('toudown'));
+                } else if (xdire < 0 && chazhi > 0) {
+                    console.log("left");
+                    obj.dispatchEvent(evenzc('touleft'));
+                } else if (ydire < 0 && chazhi < 0) {
+                    console.log("up");
+                    obj.dispatchEvent(evenzc('touup'));
+                }
+            }, false);
+
+            function evenzc(eve) {
+                if (typeof document.CustomEvent === 'function') {
+
+                    this.event = new document.CustomEvent(eve, {//自定义事件名称
+                        bubbles: false,//是否冒泡
+                        cancelable: false//是否可以停止捕获
+                    });
+                    if (!document["evetself" + eve]) {
+                        document["evetself" + eve] = this.event;
+                    }
+                } else if (typeof document.createEvent === 'function') {
+
+
+                    this.event = document.createEvent('HTMLEvents');
+                    this.event.initEvent(eve, false, false);
+                    if (!document["evetself" + eve]) {
+                        document["evetself" + eve] = this.event;
+                    }
+                } else {
+                    return false;
+                }
+
+                return document["evetself" + eve];
+
+            }
+        }
+    })();
 });
